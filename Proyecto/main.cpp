@@ -1,114 +1,195 @@
 #include <iostream>
+#include <vector>
+#include <algorithm>
 #include <random>
 #include <string>
-#include <algorithm>
-#include <vector>
-
 using namespace std;
 
-// Estructura para representar una carta con su valor y su palo
-struct Carta {
-    string valor;
-    string palo;
+// Enumeraciones para el juego
+enum class Winner {
+    PLAYER,  // El jugador gana
+    DEALER,  // El dealer gana
+    DRAW     // Empate
 };
 
-const int MazoTam = 52; // Tamaño del mazo
-int puntosJugador = 0;
-int puntosDealer = 0;
-string mensajeJugador = "Las cartas del jugador son: ";
-string mensajeDealer = "Las cartas del dealer son: ";
-vector<Carta> mazo; // Vector para el mazo de cartas
-int cartaMazo = 0; // Índice de la carta actual
+enum class Suit {
+    HEARTS,   // Corazones
+    DIAMONDS, // Diamantes
+    CLUBS,    // Tréboles
+    SPADES    // Picas
+};
 
-// Función para crear el mazo de cartas
-void crearMazo() {
-    string palos[] = {"Corazones", "Diamantes", "Treboles", "Picas"};
-    string valores[] = {"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "As"};
-    mazo.clear(); // Limpiar el mazo por si ya hay cartas
+enum class Figure {
+    TWO = 2,
+    THREE,
+    FOUR,
+    FIVE,
+    SIX,
+    SEVEN,
+    EIGHT,
+    NINE,
+    TEN,
+    JACK,
+    QUEEN,
+    KING,
+    ACE
+};
 
-    // Llenar el mazo con las cartas
-    for (int palo = 0; palo < 4; palo++) {
-        for (int valor = 0; valor < 13; valor++) {
-            Carta carta;
-            carta.valor = valores[valor];
-            carta.palo = palos[palo];
-            mazo.push_back(carta);
-        }
+// Estructura que representa una carta
+struct Card {
+    int value;          // Valor de la carta
+    Suit suit;         // Palo de la carta
+    Figure figure;     // Figura de la carta
+    bool isTaken;      // Indica si la carta ha sido tomada por un jugador
+
+    [[nodiscard]] string getCard() const; // Devuelve la carta en formato de texto
+    [[nodiscard]] string getSuit() const;  // Devuelve el palo de la carta en formato de texto
+
+    Card();
+    explicit Card(Figure figure, Suit suit);
+};
+
+// Constructor por defecto
+Card::Card() : value(0), suit(Suit::HEARTS), figure(Figure::TWO), isTaken(false) {}
+
+// Constructor que recibe la figura y el palo de la carta
+Card::Card(Figure figure, Suit suit) : figure(figure), suit(suit), isTaken(false) {
+    value = static_cast<int>(figure); // Asigna el valor correspondiente a la figura
+}
+
+// Devuelve la carta en formato de texto
+string Card::getCard() const {
+    return getSuit() + " " + to_string(value); // Formato de texto de la carta
+}
+
+// Devuelve el palo de la carta en formato de texto
+string Card::getSuit() const {
+    switch (suit) {
+        case Suit::HEARTS:   return "Corazones";
+        case Suit::DIAMONDS: return "Diamantes";
+        case Suit::CLUBS:    return "Treboles";
+        case Suit::SPADES:   return "Picas";
+        default:             return ""; // Valor por defecto
     }
 }
 
-// Función para mezclar el mazo
-void shuffleDeck() {
-    random_device rd;
-    mt19937 gen(rd());
-    shuffle(begin(mazo), end(mazo), gen);  // Mezclar el mazo
-    cartaMazo = 0;  // Reiniciar índice
-}
+// Estructura que representa un jugador
+struct Player {
+    int score;               // Puntos del jugador
+    vector<Card> cards;      // Cartas del jugador
+    string name;            // Nombre del jugador
 
-// Función para sacar una carta del mazo
-Carta sacarCarta() {
-    if (cartaMazo >= MazoTam) {
-        cout << "No quedan cartas en el mazo." << endl;
-        return {"0", "Ninguno"}; // No quedan cartas para repartir
+    void addCard(const Card& card); // Añade una carta al jugador
+    void showHand() const;          // Muestra las cartas del jugador
+
+    Player();                       // Constructor por defecto
+    explicit Player(string name);   // Constructor que recibe el nombre del jugador
+};
+
+// Constructor por defecto
+Player::Player() : score(0), name("Jugador") {}
+
+// Constructor que recibe el nombre del jugador
+Player::Player(string name) : score(0), name(name) {}
+
+// Estructura que representa la baraja de cartas
+struct Deck {
+    vector<Card> cards; // Vector de cartas de la baraja
+
+    Deck();            // Constructor que crea una nueva baraja de cartas
+    void shuffle();    // Baraja las cartas
+    Card draw();       // Reparte una carta de la baraja
+};
+
+// Constructor que crea una nueva baraja de cartas
+Deck::Deck() {
+    for (int s = 0; s < 4; ++s) { // Itera a través de los 4 palos
+        for (int f = 2; f <= 11; ++f);
     }
-
-    Carta carta = mazo[cartaMazo]; // Sacar la carta actual
-    cartaMazo++; // Avanzar al siguiente índice
-    return carta; // Retornar la carta sacada
 }
 
-// Función para obtener el valor numérico de una carta
-int obtenerValor(Carta carta) {
-    if (carta.valor == "J" || carta.valor == "Q" || carta.valor == "K") {
-        return 10; // J, Q, K valen 10
-    } else if (carta.valor == "As") {
-        return 11; // El As vale 11
-    } else {
-        return stoi(carta.valor); // Convertir el valor numérico de la carta
+// Repartir una carta de la baraja
+Card Deck::draw() {
+    if (cards.empty()) {
+        cout << "No hay más cartas en la baraja." << endl;
+        return Card(); // Devuelve una carta vacía si no hay cartas
+    }
+    Card card = cards.back(); // Toma la última carta
+    cards.pop_back();         // Elimina la carta de la baraja
+    return card;             // Devuelve la carta
+}
+
+// Estructura que representa el juego de Blackjack
+struct BlackJack {
+    Player player;   // Jugador
+    Player dealer;   // Dealer
+    Deck deck;       // Baraja
+
+    explicit BlackJack(string playerName); // Constructor de BlackJack
+
+    void showTable();   // Muestra la mesa
+    void dealCards();   // Reparte cartas
+    [[nodiscard]] Winner getWinner() const; // Obtiene el ganador
+    void showWinner() const; // Muestra el ganador
+};
+
+// Constructor de BlackJack
+BlackJack::BlackJack(string playerName)
+    : player(playerName), dealer("Dealer"), deck() {
+    deck.shuffle(); // Baraja las cartas al inicio del juego
+    dealCards();    // Reparte las cartas al iniciar el juego
+}
+
+// Barajar la baraja de cartas
+void Deck::shuffle() {
+    random_device rd;  // Dispositivo aleatorio
+    mt19937 g(rd());   // Generador de números aleatorios
+    std::shuffle(cards.begin(), cards.end(), g); // Baraja las cartas
+}
+
+// Repartir las cartas iniciales al jugador y al dealer
+void BlackJack::dealCards() {
+    for (int i = 0; i < 2; ++i) {
+        player.addCard(deck.draw()); // Añade una carta al jugador
+        dealer.addCard(deck.draw()); // Añade una carta al dealer
     }
 }
 
-// Función para repartir las cartas y mostrar los resultados
-void repartirCartas() {
-    // Repartir dos cartas al jugador
-    Carta carta1 = sacarCarta();
-    Carta carta2 = sacarCarta();
-    puntosJugador += obtenerValor(carta1);
-    puntosJugador += obtenerValor(carta2);
-
-    // Repartir dos cartas al dealer
-    Carta carta3 = sacarCarta();
-    Carta carta4 = sacarCarta();
-    puntosDealer += obtenerValor(carta3);
-    puntosDealer += obtenerValor(carta4);
-
-    // Mostrar los resultados
-    cout << mensajeJugador << carta1.valor << " de " << carta1.palo << ", "
-         << carta2.valor << " de " << carta2.palo << " (Total: " << puntosJugador << ")" << endl;
-    cout << mensajeDealer << carta3.valor << " de " << carta3.palo << ", "
-         << carta4.valor << " de " << carta4.palo << " (Total: " << puntosDealer << ")" << endl;
+// Mostrar la mesa
+void BlackJack::showTable() {
+    cout << "Mesa actual:\n";
+    player.showHand(); // Muestra las cartas del jugador
+    dealer.showHand(); // Muestra las cartas del dealer
 }
 
-// Función para determinar el ganador
-void determinarGanador() {
-    if (puntosJugador > 21) {
-        cout << "Perdiste." << endl;
-    } else if (puntosDealer > 21) {
-        cout << "Ganaste." << endl;
-    } else if (puntosJugador > puntosDealer) {
-        cout << "Ganaste." << endl;
-    } else if (puntosJugador < puntosDealer) {
-        cout << "Perdiste." << endl;
-    } else {
-        cout << "Empate." << endl;
+// Obtener el ganador
+[[nodiscard]] Winner BlackJack::getWinner() const {
+    if (player.score > 21) return Winner::DEALER; // Si el jugador se pasa de 21
+    if (dealer.score > 21) return Winner::PLAYER; // Si el dealer se pasa de 21
+    if (player.score > dealer.score) return Winner::PLAYER; // El jugador gana si tiene más puntos
+    if (dealer.score > player.score) return Winner::DEALER; // El dealer gana si tiene más puntos
+    return Winner::DRAW; // Si ambos tienen el mismo puntaje
+}
+
+// Mostrar el ganador
+void BlackJack::showWinner() const {
+    Winner winner = getWinner(); // Obtiene el ganador
+    switch (winner) {
+        case Winner::PLAYER:
+            cout << "Jugador gana" << endl;
+            break;
+        case Winner::DEALER:
+            cout << "Dealer gana" << endl;
+            break;
+        case Winner::DRAW:
+            cout << "Empate" << endl;
+            break;
     }
 }
 
 int main() {
-    crearMazo();    // Crear el mazo
-    shuffleDeck();  // Mezclar el mazo
-    repartirCartas();
-    determinarGanador();
-
+    BlackJack game("Jugador 1");
+    game.showTable(); // Muestra la mesa
+    game.showWinner(); // Muestra el ganador
     return 0;
 }
