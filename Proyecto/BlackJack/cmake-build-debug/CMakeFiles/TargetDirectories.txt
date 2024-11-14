@@ -1,0 +1,3 @@
+B:/Alan Roberto/Documents/Uni/BlackJack/cmake-build-debug/CMakeFiles/BlackJack.dir
+B:/Alan Roberto/Documents/Uni/BlackJack/cmake-build-debug/CMakeFiles/edit_cache.dir
+B:/Alan Roberto/Documents/Uni/BlackJack/cmake-build-debug/CMakeFiles/rebuild_cache.dir
